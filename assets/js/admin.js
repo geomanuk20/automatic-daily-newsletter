@@ -644,6 +644,103 @@
 			}
 		});
 
+		// Tag Insertion into Email Subject Field
+		$(document).on('click', '.adnl-insert-tag', function(e) {
+			e.preventDefault();
+			var tag = $(this).data('tag');
+			var $textarea = $('#adnl_email_subject');
+			if ($textarea.length === 0) return;
+
+			var elem = $textarea[0];
+			var startPos = elem.selectionStart || 0;
+			var endPos = elem.selectionEnd || 0;
+			var currentVal = $textarea.val();
+
+			$textarea.val(currentVal.substring(0, startPos) + tag + currentVal.substring(endPos));
+			$textarea.focus();
+			elem.selectionStart = elem.selectionEnd = startPos + tag.length;
+			updateLiveSubjectPreview();
+		});
+
+		// 7-News Random Presets Loader
+		var sampleSubjectPresets = [
+			"🔥 {top_story} — Plus {posts_count} more stories for {date}",
+			"[{site_name}] {day} News Briefing: {random_story}",
+			"⚡ Breaking: {top_story} ({date})",
+			"Today's Top {posts_count} Stories You Need to Know: {random_story}",
+			"Your Daily Digest for {day}, {date}: {top_story}",
+			"📰 {random_story} — plus {posts_count} top updates today"
+		];
+
+		$(document).on('click', '#adnl-load-subject-presets', function(e) {
+			e.preventDefault();
+			var $textarea = $('#adnl_email_subject');
+			$textarea.val(sampleSubjectPresets.join("\n"));
+			updateLiveSubjectPreview();
+		});
+
+		// Sample news headlines for live JS simulation
+		var sampleHeadlines = [
+			"Next-Generation Quantum Chips Achieve Breakthrough in Real-Time Quantum Processing",
+			"Global Green Energy Grid Links Cross-Continental Solar Corridors",
+			"Central Banks Announce Synchronized Liquidity Framework for Digital Assets",
+			"Autonomous Deep-Sea Rovers Discover Hydrothermal Ecosystems in Kermadec Trench",
+			"Open-Source Foundation Releases Multimodal Agent Operating System",
+			"Space Telescope Identifies Atmosphere Rich in Water Vapor on Exoplanet",
+			"Global Manufacturing Survey Signals Rebound in High-Tech Industrial Output"
+		];
+
+		function updateLiveSubjectPreview() {
+			var text = $('#adnl_email_subject').val() || "[Daily Digest] Today's Top Stories - {date}";
+			var lines = text.split(/\r?\n|\|/).map(function(l) { return l.trim(); }).filter(function(l) { return l.length > 0; });
+			if (lines.length === 0) {
+				lines = ["[Daily Digest] Today's Top Stories - {date}"];
+			}
+
+			// Randomly pick one template from lines
+			var chosenTemplate = lines[Math.floor(Math.random() * lines.length)];
+			
+			// Date & Tag variables
+			var now = new Date();
+			var dateOptions = { year: 'numeric', month: 'long', day: 'numeric' };
+			var dayOptions = { weekday: 'long' };
+			var monthOptions = { month: 'long' };
+			
+			var dateStr = now.toLocaleDateString('en-US', dateOptions);
+			var dayStr = now.toLocaleDateString('en-US', dayOptions);
+			var monthStr = now.toLocaleDateString('en-US', monthOptions);
+			var yearStr = now.getFullYear().toString();
+			var siteName = $('input[name="adnl_from_name"]').val() || $('input[name="adnl_header_title"]').val() || 'Daily News';
+			var postCount = $('input[name="adnl_posts_count"]').val() || '7';
+
+			var topStory = sampleHeadlines[0];
+			var randStory = sampleHeadlines[Math.floor(Math.random() * sampleHeadlines.length)];
+
+			var resolved = chosenTemplate
+				.replace(/\{date\}/g, dateStr)
+				.replace(/\{day\}/g, dayStr)
+				.replace(/\{month\}/g, monthStr)
+				.replace(/\{year\}/g, yearStr)
+				.replace(/\{site_name\}/g, siteName)
+				.replace(/\{posts_count\}/g, postCount)
+				.replace(/\{top_story\}/g, topStory)
+				.replace(/\{first_story\}/g, topStory)
+				.replace(/\{headline\}/g, topStory)
+				.replace(/\{random_story\}/g, randStory)
+				.replace(/\{random_news\}/g, randStory);
+
+			$('#adnl-subject-preview-text').text(resolved);
+		}
+
+		$('#adnl_email_subject').on('input keyup change', function() {
+			updateLiveSubjectPreview();
+		});
+
+		$(document).on('click', '#adnl-shuffle-preview-btn', function(e) {
+			e.preventDefault();
+			updateLiveSubjectPreview();
+		});
+
 		// Close Modals
 		$('.adnl-modal-close').on('click', function() {
 			$(this).closest('.adnl-modal').fadeOut(150);

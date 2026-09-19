@@ -151,18 +151,29 @@ if ( isset( $_POST['action'] ) ) {
 		$current_date   = wp_date( get_option( 'date_format', 'F j, Y' ) );
 		$preheader_text = get_option( 'adnl_preheader_text', "Here are today's top stories and news updates." );
 		$primary_color  = get_option( 'adnl_primary_color', '#2563eb' );
+		$show_primary_tip = (bool) get_option( 'adnl_show_primary_tip', 1 );
 
 		ob_start();
 		include ADNL_PLUGIN_DIR . 'templates/email-digest.php';
 		$html = ob_get_clean();
 
+		$unsub_url = 'http://127.0.0.1:8000/demo/index.php?adnl_action=unsubscribe&token=test_token';
+
 		$html = str_replace(
 			array( '{{UNSUBSCRIBE_URL}}', '{{SUBSCRIBER_NAME}}', '{{SITE_NAME}}' ),
-			array( 'http://127.0.0.1:8000/demo/index.php?adnl_action=unsubscribe&token=test_token', 'Test Recipient', $site_name ),
+			array( $unsub_url, 'Test Recipient', $site_name ),
 			$html
 		);
 
-		$subject = sprintf( '[Test Email] %s - Daily Newsletter Preview', $site_name );
+		$builder    = new ADNL_Template_Builder();
+		$plain_body = $builder->build_digest_plain_text( $posts );
+		$plain_body = str_replace(
+			array( '{{UNSUBSCRIBE_URL}}', '{{SUBSCRIBER_NAME}}', '{{SITE_NAME}}' ),
+			array( $unsub_url, 'Test Recipient', $site_name ),
+			$plain_body
+		);
+
+		$subject = sprintf( '%s - Daily Newsletter Preview', $site_name );
 
 		$smtp_host = get_option( 'adnl_smtp_host' );
 		$smtp_user = get_option( 'adnl_smtp_user' );
@@ -175,14 +186,17 @@ if ( isset( $_POST['action'] ) ) {
 		}
 
 		$config = array(
-			'host'       => $smtp_host,
-			'port'       => get_option( 'adnl_smtp_port', 587 ),
-			'encryption' => get_option( 'adnl_smtp_encryption', 'tls' ),
-			'auth'       => get_option( 'adnl_smtp_auth', 1 ),
-			'username'   => $smtp_user,
-			'password'   => $smtp_pass,
-			'from_name'  => get_option( 'adnl_from_name', $site_name ),
-			'from_email' => get_option( 'adnl_from_email', 'newsletter@example.com' ),
+			'host'            => $smtp_host,
+			'port'            => get_option( 'adnl_smtp_port', 587 ),
+			'encryption'      => get_option( 'adnl_smtp_encryption', 'tls' ),
+			'auth'            => get_option( 'adnl_smtp_auth', 1 ),
+			'username'        => $smtp_user,
+			'password'        => $smtp_pass,
+			'from_name'       => get_option( 'adnl_from_name', $site_name ),
+			'from_email'      => get_option( 'adnl_from_email', 'newsletter@example.com' ),
+			'reply_to'        => get_option( 'adnl_from_email', 'newsletter@example.com' ),
+			'unsubscribe_url' => $unsub_url,
+			'plain_body'      => $plain_body,
 		);
 
 		$send_result = ADNL_SMTP_Transport::send( $email, $subject, $html, $config );
@@ -223,7 +237,7 @@ if ( isset( $_POST['action'] ) ) {
 			wp_send_json_error( array( 'message' => 'No active subscribers to send to.' ) );
 		}
 
-		$subject = str_replace( '{date}', date( 'F j, Y' ), get_option( 'adnl_email_subject', "[Daily Digest] Today's Top Stories - {date}" ) );
+		$subject = ADNL_Template_Builder::generate_subject( get_option( 'adnl_email_subject' ), $posts );
 
 		$smtp_host = get_option( 'adnl_smtp_host' );
 		$smtp_pass = get_option( 'adnl_smtp_pass' );
@@ -330,7 +344,8 @@ if ( isset( $_POST['action'] ) ) {
 			$html
 		);
 
-		wp_send_json_success( array( 'html' => $html, 'post_count' => count( $posts ) ) );
+		$subject = ADNL_Template_Builder::generate_subject( get_option( 'adnl_email_subject' ), $posts );
+		wp_send_json_success( array( 'html' => $html, 'post_count' => count( $posts ), 'subject' => $subject ) );
 	}
 
 	if ( 'adnl_admin_add_subscriber' === $action ) {
@@ -409,7 +424,7 @@ if ( isset( $_POST['adnl_save_settings_nonce'] ) ) {
 		update_option( 'adnl_fallback_behavior', sanitize_text_field( $_POST['adnl_fallback_behavior'] ?? 'latest' ) );
 		update_option( 'adnl_schedule_time', sanitize_text_field( $_POST['adnl_schedule_time'] ?? '08:00' ) );
 		update_option( 'adnl_timezone', sanitize_text_field( $_POST['adnl_timezone'] ?? '' ) );
-		update_option( 'adnl_email_subject', sanitize_text_field( $_POST['adnl_email_subject'] ?? "[Daily Digest] Today's Top Stories - {date}" ) );
+		update_option( 'adnl_email_subject', sanitize_textarea_field( $_POST['adnl_email_subject'] ?? "[Daily Digest] Today's Top Stories - {date}" ) );
 		update_option( 'adnl_preheader_text', sanitize_text_field( $_POST['adnl_preheader_text'] ?? '' ) );
 		update_option( 'adnl_header_title', sanitize_text_field( $_POST['adnl_header_title'] ?? '' ) );
 		update_option( 'adnl_site_logo', sanitize_text_field( $_POST['adnl_site_logo'] ?? '' ) );

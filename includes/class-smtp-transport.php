@@ -161,23 +161,95 @@ class ADNL_SMTP_Transport {
 			return array( 'success' => false, 'message' => 'DATA command error: ' . $response );
 		}
 
-		// 8. Headers & Body
+		// 8. Headers & Body (RFC 5322 & RFC 2045 compliant)
+		$from_domain = 'localhost';
+		if ( strpos( $from_email, '@' ) !== false ) {
+			$email_parts = explode( '@', $from_email );
+			$from_domain = array_pop( $email_parts );
+		} elseif ( ! empty( $client_host ) && 'localhost' !== $client_host ) {
+			$from_domain = $client_host;
+		}
+
+		$random_token = function_exists( 'random_bytes' ) ? bin2hex( random_bytes( 6 ) ) : substr( md5( uniqid( (string) mt_rand(), true ) ), 0, 12 );
+		$message_id   = sprintf( '<adnl.%s.%s@%s>', time(), $random_token, $from_domain );
+
+		$reply_to = ! empty( $config['reply_to'] ) ? trim( $config['reply_to'] ) : $from_email;
+
+		// Extract or generate plain text alternative
+		$plain_body = ! empty( $config['plain_body'] ) ? $config['plain_body'] : '';
+		if ( empty( $plain_body ) ) {
+			// Convert HTML to clean readable plain text
+			$clean_text = preg_replace( '/<style\b[^>]*>(.*?)<\/style>/is', '', $html_body );
+			$clean_text = preg_replace( '/<script\b[^>]*>(.*?)<\/script>/is', '', $clean_text );
+			$clean_text = preg_replace( '/<br\s*[\/]?>/i', "\n", $clean_text );
+			$clean_text = preg_replace( '/<\/p>/i', "\n\n", $clean_text );
+			$clean_text = preg_replace( '/<\/h[1-6]>/i', "\n\n", $clean_text );
+			$clean_text = preg_replace( '/<\/tr>/i', "\n", $clean_text );
+			$clean_text = strip_tags( $clean_text );
+			$clean_text = html_entity_decode( $clean_text, ENT_QUOTES, 'UTF-8' );
+			$plain_body = trim( preg_replace( "/\n{3,}/", "\n\n", $clean_text ) );
+		}
+
+		$boundary = '=_adnl_' . md5( uniqid( (string) time(), true ) );
+
 		$headers = array(
 			'MIME-Version: 1.0',
-			'Content-Type: text/html; charset=UTF-8',
+			'Message-ID: ' . $message_id,
+			'Date: ' . date( 'r' ),
 			'From: ' . sprintf( '=?UTF-8?B?%s?= <%s>', base64_encode( $from_name ), $from_email ),
+			'Reply-To: ' . sprintf( '=?UTF-8?B?%s?= <%s>', base64_encode( $from_name ), $reply_to ),
 			'To: <' . $to . '>',
 			'Subject: ' . sprintf( '=?UTF-8?B?%s?=', base64_encode( $subject ) ),
-			'Date: ' . date( 'r' ),
+			'Content-Type: multipart/alternative; boundary="' . $boundary . '"',
 			'X-Mailer: Auto Daily Newsletter WordPress Plugin',
 		);
 
-		// Normalize line endings to RFC standard CRLF and apply dot-stuffing
-		$normalized_body = str_replace( array( "\r\n", "\r" ), "\n", $html_body );
-		$normalized_body = str_replace( "\n", "\r\n", $normalized_body );
-		$normalized_body = preg_replace( '/^\./m', '..', $normalized_body );
+		// RFC 8058 One-Click Unsubscribe headers for Gmail / Yahoo inbox deliverability
+		$unsubscribe_url = ! empty( $config['unsubscribe_url'] ) ? $config['unsubscribe_url'] : '';
+		if ( ! empty( $unsubscribe_url ) ) {
+			$safe_unsub_url = function_exists( 'esc_url_raw' ) ? esc_url_raw( $unsubscribe_url ) : ( function_exists( 'esc_url' ) ? esc_url( $unsubscribe_url ) : filter_var( $unsubscribe_url, FILTER_SANITIZE_URL ) );
+			$headers[] = sprintf( 'List-Unsubscribe: <%s>', $safe_unsub_url );
+			$headers[] = 'List-Unsubscribe-Post: List-Unsubscribe=One-Click';
+		}
 
-		$payload = implode( "\r\n", $headers ) . "\r\n\r\n" . $normalized_body . "\r\n.\r\n";
+		// Normalize line endings to RFC standard CRLF
+		$normalized_plain = str_replace( array( "\r\n", "\r" ), "\n", $plain_body );
+		$normalized_plain = str_replace( "\n", "\r\n", $normalized_plain );
+
+		$normalized_html = str_replace( array( "\r\n", "\r" ), "\n", $html_body );
+		$normalized_html = str_replace( "\n", "\r\n", $normalized_html );
+
+		// Assemble MIME multipart/alternative payload with base64 encoding (prevents line length & charset issues)
+		$body_lines   = array();
+		$body_lines[] = 'This is a multi-part message in MIME format.';
+		$body_lines[] = '';
+
+		// Plain text part
+		$body_lines[] = '--' . $boundary;
+		$body_lines[] = 'Content-Type: text/plain; charset=UTF-8';
+		$body_lines[] = 'Content-Transfer-Encoding: base64';
+		$body_lines[] = '';
+		$body_lines[] = trim( chunk_split( base64_encode( $normalized_plain ), 76, "\r\n" ) );
+		$body_lines[] = '';
+
+		// HTML part
+		$body_lines[] = '--' . $boundary;
+		$body_lines[] = 'Content-Type: text/html; charset=UTF-8';
+		$body_lines[] = 'Content-Transfer-Encoding: base64';
+		$body_lines[] = '';
+		$body_lines[] = trim( chunk_split( base64_encode( $normalized_html ), 76, "\r\n" ) );
+		$body_lines[] = '';
+
+		// Closing boundary
+		$body_lines[] = '--' . $boundary . '--';
+		$body_lines[] = '';
+
+		$mime_body = implode( "\r\n", $body_lines );
+
+		// Dot-stuffing for SMTP DATA transmission
+		$mime_body = preg_replace( '/^\./m', '..', $mime_body );
+
+		$payload = implode( "\r\n", $headers ) . "\r\n\r\n" . $mime_body . "\r\n.\r\n";
 		fwrite( $socket, $payload );
 
 		$response = self::read_response( $socket );

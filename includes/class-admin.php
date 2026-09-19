@@ -176,7 +176,7 @@ class ADNL_Admin {
 					ADNL_Cron::reschedule();
 				}
 
-				update_option( 'adnl_email_subject', sanitize_text_field( $_POST['adnl_email_subject'] ?? "[Daily Digest] Today's Top Stories - {date}" ) );
+				update_option( 'adnl_email_subject', sanitize_textarea_field( $_POST['adnl_email_subject'] ?? "[Daily Digest] Today's Top Stories - {date}" ) );
 				update_option( 'adnl_preheader_text', sanitize_text_field( $_POST['adnl_preheader_text'] ?? '' ) );
 				update_option( 'adnl_header_title', sanitize_text_field( $_POST['adnl_header_title'] ?? '' ) );
 				update_option( 'adnl_site_logo', esc_url_raw( $_POST['adnl_site_logo'] ?? '' ) );
@@ -185,6 +185,7 @@ class ADNL_Admin {
 				update_option( 'adnl_footer_text', sanitize_textarea_field( $_POST['adnl_footer_text'] ?? '' ) );
 				update_option( 'adnl_footer_copyright', sanitize_text_field( $_POST['adnl_footer_copyright'] ?? '' ) );
 				update_option( 'adnl_footer_bg_color', sanitize_hex_color( $_POST['adnl_footer_bg_color'] ?? '#f8fafc' ) );
+				update_option( 'adnl_show_primary_tip', isset( $_POST['adnl_show_primary_tip'] ) ? 1 : 0 );
 
 				// Bottom-Left Popup settings
 				update_option( 'adnl_popup_enabled', isset( $_POST['adnl_popup_enabled'] ) ? 1 : 0 );
@@ -375,10 +376,12 @@ class ADNL_Admin {
 		);
 
 		$personalized = $template_builder->personalize_html( $html, $mock_subscriber );
+		$subject      = ADNL_Template_Builder::generate_subject( get_option( 'adnl_email_subject' ), $posts );
 
 		wp_send_json_success( array(
 			'html'       => $personalized,
 			'post_count' => count( $posts ),
+			'subject'    => $subject,
 		) );
 	}
 

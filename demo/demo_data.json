@@ -27,7 +27,7 @@
         "adnl_smtp_pass": "ouxo blsz flwd qyke",
         "adnl_batch_size": 30,
         "adnl_batch_delay": 1,
-        "adnl_last_run_timestamp": 1788245807,
+        "adnl_last_run_timestamp": 1788438053,
         "blogname": "Whiteswan Tv News",
         "admin_email": "technicalserver34@gmail.com",
         "date_format": "F j, Y",
@@ -57,69 +57,26 @@
         "adnl_popup_frequency": 0,
         "adnl_timezone": ""
     },
-    "subscribers": [
+    "subscribers": [],
+    "logs": [
         {
-            "email": "geomanuk20@gmail.com",
-            "name": "",
-            "token": "token_282438c9a0bdeac717c7",
-            "status": "unsubscribed",
-            "created_at": "2026-08-30 07:00:54",
-            "id": 1
-        },
-        {
-            "email": "geomanuk20@gmail.com",
-            "name": "",
-            "token": "token_8654939f5244b7252555",
-            "status": "active",
-            "created_at": "2026-08-30 11:44:10",
-            "id": 2
-        },
-        {
-            "email": "alice@example.com",
-            "name": "Alice Walker",
-            "status": "active",
-            "token": "fd9b9e93e0bdca5126a4f1acb1c41e18",
-            "created_at": "2026-08-31 09:36:30",
-            "updated_at": "2026-08-31 09:36:30",
-            "id": 3
-        },
-        {
-            "email": "bob@example.com",
-            "name": "Bob Stone",
-            "status": "active",
-            "token": "467cbdae0d8d3152346ff8773bf36b90",
-            "created_at": "2026-08-31 09:36:30",
-            "updated_at": "2026-08-31 09:36:30",
-            "id": 4
-        },
-        {
-            "email": "charlie@example.com",
-            "name": "Charlie Brown",
-            "status": "active",
-            "token": "e6352680853ab1b86007c29979d9d17d",
-            "created_at": "2026-08-31 09:36:37",
-            "updated_at": "2026-08-31 09:36:37",
+            "subject": "[Daily Digest] Today's Top Stories - September 3, 2026",
+            "posts_count": 7,
+            "recipients_count": 0,
+            "status": "failed",
+            "message": "Sent to 0 subscribers. Failures: 7. DATA command error: 550-5.4.5 Daily user sending limit exceeded. For more information on Gmail\r\n550-5.4.5 sending limits go to\r\n550 5.4.5  https:\/\/support.google.com\/a\/answer\/166852 5a478bee46e88-3325592ebb3sm6544430eec.14 - gsmtp",
+            "created_at": "2026-09-03 12:20:53",
             "id": 5
         },
         {
-            "email": "david@example.com",
-            "name": "David",
-            "status": "active",
-            "token": "e1c0fefea91e2c5ab25f49f78809afcd",
-            "created_at": "2026-08-31 09:36:43",
-            "updated_at": "2026-08-31 09:36:43",
-            "id": 6
+            "subject": "[Daily Digest] Today's Top Stories - September 3, 2026",
+            "posts_count": 7,
+            "recipients_count": 0,
+            "status": "failed",
+            "message": "Sent to 0 subscribers. Failures: 7. DATA command error: 550-5.4.5 Daily user sending limit exceeded. For more information on Gmail\r\n550-5.4.5 sending limits go to\r\n550 5.4.5  https:\/\/support.google.com\/a\/answer\/166852 a92af1059eb24-1431994fdd7sm6085926c88.10 - gsmtp",
+            "created_at": "2026-09-03 12:19:24",
+            "id": 4
         },
-        {
-            "email": "geomanuk20@gmail.com",
-            "name": "",
-            "token": "token_3876e7a66804820662be",
-            "status": "active",
-            "created_at": "2026-08-31 12:03:39",
-            "id": 7
-        }
-    ],
-    "logs": [
         {
             "subject": "[Daily Digest] Today's Top Stories - September 1, 2026",
             "posts_count": 7,

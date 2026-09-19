@@ -9,7 +9,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class ADNL_Mailer {
 
-	public $last_mail_error = '';
+	public $last_mail_error    = '';
+	public $current_plain_body = '';
 
 	public function __construct() {
 		// Hook into PHPMailer when custom SMTP is enabled
@@ -36,6 +37,11 @@ class ADNL_Mailer {
 	 * @param PHPMailer\PHPMailer\PHPMailer $phpmailer
 	 */
 	public function configure_phpmailer_smtp( $phpmailer ) {
+		// Set plain-text alternative if available
+		if ( ! empty( $this->current_plain_body ) ) {
+			$phpmailer->AltBody = $this->current_plain_body;
+		}
+
 		$host       = get_option( 'adnl_smtp_host', '' );
 		$port       = intval( get_option( 'adnl_smtp_port', 587 ) );
 		$encryption = get_option( 'adnl_smtp_encryption', 'tls' );
@@ -96,6 +102,7 @@ class ADNL_Mailer {
 	public function send_digest_to_subscribers( $subscribers, $posts, $subject ) {
 		$template_builder = new ADNL_Template_Builder();
 		$base_html        = $template_builder->build_digest_html( $posts );
+		$base_plain       = $template_builder->build_digest_plain_text( $posts );
 
 		$batch_size  = intval( get_option( 'adnl_batch_size', 30 ) );
 		$batch_delay = intval( get_option( 'adnl_batch_delay', 1 ) );
@@ -109,13 +116,15 @@ class ADNL_Mailer {
 
 		foreach ( $batches as $batch_index => $batch ) {
 			foreach ( $batch as $subscriber ) {
-				$personalized_html = $template_builder->personalize_html( $base_html, $subscriber );
+				$personalized_html  = $template_builder->personalize_html( $base_html, $subscriber );
+				$personalized_plain = $template_builder->personalize_plain_text( $base_plain, $subscriber );
 
 				$result = $this->send_single_email(
 					$subscriber->email,
 					$subject,
 					$personalized_html,
-					$subscriber->token ?? ''
+					$subscriber->token ?? '',
+					$personalized_plain
 				);
 
 				if ( ! empty( $result['success'] ) ) {
@@ -165,9 +174,10 @@ class ADNL_Mailer {
 	 * @param string $subject
 	 * @param string $html_body
 	 * @param string $token
+	 * @param string $plain_body
 	 * @return array
 	 */
-	public function send_single_email( $to, $subject, $html_body, $token = '' ) {
+	public function send_single_email( $to, $subject, $html_body, $token = '', $plain_body = '' ) {
 		$mailer_type = get_option( 'adnl_mailer_type', 'smtp' );
 		$from_name   = get_option( 'adnl_from_name', get_bloginfo( 'name' ) );
 		$from_email  = get_option( 'adnl_from_email', get_bloginfo( 'admin_email' ) );
@@ -180,13 +190,21 @@ class ADNL_Mailer {
 			$from_email = $smtp_user;
 		}
 
+		$unsub_url = '';
+		if ( ! empty( $token ) ) {
+			$unsub_url = add_query_arg( array( 'adnl_action' => 'unsubscribe', 'token' => $token ), home_url( '/' ) );
+		}
+
+		// Store plain body for PHPMailer AltBody hook
+		$this->current_plain_body = $plain_body;
+
 		$headers = array(
 			'Content-Type: text/html; charset=UTF-8',
 			sprintf( 'From: %s <%s>', esc_html( $from_name ), sanitize_email( $from_email ) ),
+			sprintf( 'Reply-To: %s <%s>', esc_html( $from_name ), sanitize_email( $from_email ) ),
 		);
-		if ( ! empty( $token ) ) {
-			$unsub_url = add_query_arg( array( 'adnl_action' => 'unsubscribe', 'token' => $token ), home_url( '/' ) );
-			$headers[] = sprintf( 'List-Unsubscribe: <%s>', esc_url( $unsub_url ) );
+		if ( ! empty( $unsub_url ) ) {
+			$headers[] = sprintf( 'List-Unsubscribe: <%s>', esc_url_raw( $unsub_url ) );
 			$headers[] = 'List-Unsubscribe-Post: List-Unsubscribe=One-Click';
 		}
 
@@ -204,14 +222,17 @@ class ADNL_Mailer {
 			}
 
 			$config = array(
-				'host'       => $smtp_host,
-				'port'       => $port,
-				'encryption' => $encryption,
-				'auth'       => get_option( 'adnl_smtp_auth', 1 ),
-				'username'   => $smtp_user,
-				'password'   => get_option( 'adnl_smtp_pass', '' ),
-				'from_name'  => $from_name,
-				'from_email' => $from_email,
+				'host'            => $smtp_host,
+				'port'            => $port,
+				'encryption'      => $encryption,
+				'auth'            => get_option( 'adnl_smtp_auth', 1 ),
+				'username'        => $smtp_user,
+				'password'        => get_option( 'adnl_smtp_pass', '' ),
+				'from_name'       => $from_name,
+				'from_email'      => $from_email,
+				'reply_to'        => $from_email,
+				'unsubscribe_url' => $unsub_url,
+				'plain_body'      => $plain_body,
 			);
 			$smtp_res = ADNL_SMTP_Transport::send( $to, $subject, $html_body, $config );
 			if ( ! empty( $smtp_res['success'] ) ) {
@@ -264,8 +285,9 @@ class ADNL_Mailer {
 		$post_collector   = new ADNL_Post_Collector();
 		$template_builder = new ADNL_Template_Builder();
 
-		$posts = $post_collector->get_latest_news_posts();
-		$html  = $template_builder->build_digest_html( $posts );
+		$posts      = $post_collector->get_latest_news_posts();
+		$html       = $template_builder->build_digest_html( $posts );
+		$plain_text = $template_builder->build_digest_plain_text( $posts );
 
 		// Mock subscriber object for test preview
 		$mock_subscriber = (object) array(
@@ -274,10 +296,19 @@ class ADNL_Mailer {
 			'token' => 'sample-test-token-12345',
 		);
 
-		$personalized_html = $template_builder->personalize_html( $html, $mock_subscriber );
-		$subject = sprintf( '[Test Email] %s - Daily Newsletter Preview', get_bloginfo( 'name' ) );
+		$personalized_html  = $template_builder->personalize_html( $html, $mock_subscriber );
+		$personalized_plain = $template_builder->personalize_plain_text( $plain_text, $mock_subscriber );
 
-		$result = $this->send_single_email( $recipient_email, $subject, $personalized_html, 'sample-test-token-12345' );
+		// Spam-safe subject line (avoids promotional filter flags)
+		$subject = sprintf( '%s - Daily Newsletter Preview', get_bloginfo( 'name' ) );
+
+		$result = $this->send_single_email(
+			$recipient_email,
+			$subject,
+			$personalized_html,
+			'sample-test-token-12345',
+			$personalized_plain
+		);
 
 		if ( ! $result['success'] ) {
 			return new WP_Error( 'mail_send_error', $result['message'] );

@@ -251,14 +251,8 @@ class ADNL_Cron {
 			$mailer_type = 'wp_mail';
 		}
 
-		// 4. Prepare email subject
-		$subject_template = get_option( 'adnl_email_subject', "[Daily Digest] Today's Top Stories - {date}" );
-		$current_date     = wp_date( get_option( 'date_format', 'F j, Y' ) );
-		$subject          = str_replace(
-			array( '{date}', '{site_name}', '{posts_count}' ),
-			array( $current_date, get_bloginfo( 'name' ), (string) $post_count ),
-			$subject_template
-		);
+		// 4. Prepare email subject (supports random subject lines & dynamic news tags)
+		$subject = ADNL_Template_Builder::generate_subject( get_option( 'adnl_email_subject' ), $posts_data );
 
 		// 5. Send digest in batches
 		$send_result = $mailer->send_digest_to_subscribers( $subscribers, $posts_data, $subject );

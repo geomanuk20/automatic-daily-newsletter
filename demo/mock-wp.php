@@ -9,7 +9,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 define( 'WPINC', true );
-define( 'ADNL_VERSION', '1.1.2' );
+define( 'ADNL_VERSION', '1.2.0' );
 define( 'ADNL_PLUGIN_DIR', dirname( __DIR__ ) . '/' );
 define( 'ADNL_PLUGIN_URL', '/' );
 define( 'ADNL_PLUGIN_BASENAME', 'auto-daily-newsletter/auto-daily-newsletter.php' );
@@ -235,6 +235,23 @@ function apply_filters( $tag, $value, ...$args ) {
 function add_query_arg( $args, $url ) {
 	$query = http_build_query( $args );
 	return rtrim( $url, '/' ) . '/demo/index.php?' . $query;
+}
+
+if ( ! function_exists( 'esc_url_raw' ) ) {
+	function esc_url_raw( $url ) {
+		return esc_url( $url );
+	}
+}
+
+if ( ! function_exists( 'wp_strip_all_tags' ) ) {
+	function wp_strip_all_tags( $string, $remove_breaks = false ) {
+		$string = preg_replace( '@<(script|style)[^>]*?>.*?</\\1>@si', '', $string );
+		$string = strip_tags( $string );
+		if ( $remove_breaks ) {
+			$string = preg_replace( '/[\r\n\t ]+/', ' ', $string );
+		}
+		return trim( $string );
+	}
 }
 
 function wp_send_json_success( $data = null ) {
@@ -468,6 +485,9 @@ class Mock_WPDB {
 global $wpdb;
 $wpdb = new Mock_WPDB();
 
+if ( file_exists( ADNL_PLUGIN_DIR . 'includes/class-template-builder.php' ) ) {
+	require_once ADNL_PLUGIN_DIR . 'includes/class-template-builder.php';
+}
 if ( file_exists( ADNL_PLUGIN_DIR . 'includes/class-cron.php' ) ) {
 	require_once ADNL_PLUGIN_DIR . 'includes/class-cron.php';
 }

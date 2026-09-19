@@ -29,6 +29,10 @@ An automated, modern daily news digest plugin for WordPress. It automatically qu
   - Automatically fetches the latest 5–10 articles published within the last 24 hours.
   - Category and post-type filtering.
   - Fallback modes: Automatically send latest published posts if no new posts appeared in the last 24 hours, or skip delivery.
+- **Random Subject Rotation & Dynamic News Tags**:
+  - Support for multi-line subject templates with automatic random selection for each daily dispatch.
+  - Dynamic news headline tags: `{top_story}`, `{random_story}`, `{posts_count}`, `{date}`, `{day}`, `{site_name}`.
+  - Interactive admin UI with 1-click tag chips, 7-news random presets, and real-time preview simulation.
 - **Cross-Client Responsive HTML Email**:
   - Bulletproof inline-styled email template tested for Gmail, Apple Mail, Outlook, and mobile clients.
   - Featured "Top Story" hero card + secondary story rows with thumbnails and reading time indicators.

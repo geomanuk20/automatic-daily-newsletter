@@ -52,10 +52,10 @@ $other_posts   = ( count( $posts ) > 1 ) ? array_slice( $posts, 1 ) : array();
 </head>
 <body style="margin: 0; padding: 0; background-color: #f1f5f9;">
 
-	<!-- Hidden Preheader Preview Text -->
+	<!-- Hidden Preheader Preview Text (Spam-safe whitespace padding) -->
 	<div style="display: none; font-size: 1px; line-height: 1px; max-height: 0px; max-width: 0px; opacity: 0; overflow: hidden; mso-hide: all; font-family: sans-serif;">
 		<?php echo esc_html( $preheader_text ); ?>
-		&#847; &zwnj; &nbsp; &#8199; &shy; &#847; &zwnj; &nbsp; &#8199; &shy; &#847; &zwnj; &nbsp; &#8199; &shy;
+		&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;
 	</div>
 
 	<!-- Background Wrapper -->
@@ -260,6 +260,11 @@ $other_posts   = ( count( $posts ) > 1 ) ? array_slice( $posts, 1 ) : array();
 					?>
 					<tr>
 						<td style="padding: 28px 32px; background-color: <?php echo esc_attr( $bg_color_footer ); ?>; border-top: 1px solid #e2e8f0; text-align: center; color: #64748b; font-size: 12px; line-height: 18px;" class="mobile-padding">
+							<?php if ( ! empty( $show_primary_tip ) ) : ?>
+							<div style="margin: 0 0 16px 0; padding: 10px 14px; background-color: #ffffff; border: 1px dashed #cbd5e1; border-radius: 6px; font-size: 11px; line-height: 16px; color: #475569; text-align: center;">
+								📬 <strong>Primary Inbox Tip:</strong> If this email appeared in your Promotions tab or Spam folder, please drag it to your <strong>Primary</strong> tab or mark it as "Not Spam". A quick reply or adding us to your contacts also ensures 100% daily delivery!
+							</div>
+							<?php endif; ?>
 							<p style="margin: 0 0 8px 0; font-weight: 700; color: #1e293b; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
 								<?php echo esc_html( ! empty( $header_title ) ? $header_title : $site_name . ' Newsletter' ); ?>
 							</p>

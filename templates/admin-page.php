@@ -452,10 +452,52 @@ $active_tab = isset( $_GET['tab'] ) ? sanitize_key( $_GET['tab'] ) : 'dashboard'
 					<div class="adnl-box-body">
 						<table class="form-table">
 							<tr>
-								<th scope="row"><?php esc_html_e( 'Email Subject Format', 'auto-daily-newsletter' ); ?></th>
+								<th scope="row">
+									<label for="adnl_email_subject"><?php esc_html_e( 'Email Subject Format', 'auto-daily-newsletter' ); ?></label>
+									<span style="display: block; font-size: 11px; font-weight: normal; color: #64748b; margin-top: 4px;"><?php esc_html_e( 'Randomize or rotate daily', 'auto-daily-newsletter' ); ?></span>
+								</th>
 								<td>
-									<input type="text" name="adnl_email_subject" class="large-text" value="<?php echo esc_attr( get_option( 'adnl_email_subject', "[Daily Digest] Today's Top Stories - {date}" ) ); ?>" />
-									<p class="description"><?php esc_html_e( 'Available dynamic tags: {date}, {site_name}, {posts_count}', 'auto-daily-newsletter' ); ?></p>
+									<textarea name="adnl_email_subject" id="adnl_email_subject" rows="4" class="large-text" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace; font-size: 13px; line-height: 1.6; padding: 10px; border-radius: 6px; border: 1px solid #cbd5e1;"><?php echo esc_textarea( get_option( 'adnl_email_subject', "[Daily Digest] Today's Top Stories - {date}" ) ); ?></textarea>
+									
+									<p class="description" style="margin-top: 8px; color: #475569;">
+										<strong>💡 Random Subject Rotation:</strong> Enter a single subject line, or <strong>enter multiple subject lines (one per line)</strong>. The system will <strong>randomly select</strong> one on each daily newsletter delivery (works automatically on cron & manual sends).
+									</p>
+
+									<!-- Dynamic Tag Inserter Chips -->
+									<div style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center;">
+										<span style="font-size: 12px; font-weight: 600; color: #334155; margin-right: 4px;"><?php esc_html_e( 'Insert Tag:', 'auto-daily-newsletter' ); ?></span>
+										<button type="button" class="button button-small adnl-insert-tag" data-tag="{top_story}" title="<?php esc_attr_e( 'Inserts the headline of the first/top news story', 'auto-daily-newsletter' ); ?>">🔥 {top_story}</button>
+										<button type="button" class="button button-small adnl-insert-tag" data-tag="{random_story}" title="<?php esc_attr_e( 'Inserts a random news story headline from today\'s digest', 'auto-daily-newsletter' ); ?>">🎲 {random_story}</button>
+										<button type="button" class="button button-small adnl-insert-tag" data-tag="{posts_count}" title="<?php esc_attr_e( 'Inserts count of news posts (e.g. 7)', 'auto-daily-newsletter' ); ?>">📰 {posts_count}</button>
+										<button type="button" class="button button-small adnl-insert-tag" data-tag="{date}" title="<?php esc_attr_e( 'Inserts formatted today\'s date', 'auto-daily-newsletter' ); ?>">📅 {date}</button>
+										<button type="button" class="button button-small adnl-insert-tag" data-tag="{day}" title="<?php esc_attr_e( 'Inserts day of the week (e.g. Friday)', 'auto-daily-newsletter' ); ?>">☀️ {day}</button>
+										<button type="button" class="button button-small adnl-insert-tag" data-tag="{site_name}" title="<?php esc_attr_e( 'Inserts site/publication name', 'auto-daily-newsletter' ); ?>">🏷️ {site_name}</button>
+										<button type="button" class="button button-small" id="adnl-load-subject-presets" style="margin-left: auto; font-weight: 600; color: #2563eb; border-color: #93c5fd; background: #eff6ff;">
+											✨ <?php esc_html_e( 'Load 7-News Random Presets', 'auto-daily-newsletter' ); ?>
+										</button>
+									</div>
+
+									<!-- Interactive Live Subject Preview Box -->
+									<div id="adnl-subject-live-preview-box" style="margin-top: 12px; padding: 12px 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-left: 4px solid #2563eb; border-radius: 6px;">
+										<div style="display: flex; align-items: center; justify-content: space-between;">
+											<span style="font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; font-size: 11px;">
+												<?php esc_html_e( 'Live Subject Preview (Random Simulation)', 'auto-daily-newsletter' ); ?>:
+											</span>
+											<button type="button" id="adnl-shuffle-preview-btn" class="button button-small" style="font-size: 11px; height: 24px; line-height: 22px;">
+												🎲 <?php esc_html_e( 'Shuffle / Pick Another Random', 'auto-daily-newsletter' ); ?>
+											</button>
+										</div>
+										<div id="adnl-subject-preview-text" style="font-size: 14px; font-weight: 600; color: #0f172a; margin-top: 6px; word-break: break-word;">
+											<?php
+											$sample_posts = function_exists( 'adnl_get_mock_news_posts' ) ? adnl_get_mock_news_posts() : array();
+											if ( empty( $sample_posts ) && class_exists( 'ADNL_Post_Collector' ) ) {
+												$pc = new ADNL_Post_Collector();
+												$sample_posts = $pc->get_latest_news_posts();
+											}
+											echo esc_html( ADNL_Template_Builder::generate_subject( get_option( 'adnl_email_subject' ), $sample_posts ) );
+											?>
+										</div>
+									</div>
 								</td>
 							</tr>
 							<tr>
@@ -530,6 +572,16 @@ $active_tab = isset( $_GET['tab'] ) ? sanitize_key( $_GET['tab'] ) : 'dashboard'
 								<td>
 									<input type="color" name="adnl_footer_bg_color" value="<?php echo esc_attr( get_option( 'adnl_footer_bg_color', '#f8fafc' ) ); ?>" />
 									<p class="description"><?php esc_html_e( 'Background color for the footer section (e.g. #f8fafc light gray, or #ffffff for pure white).', 'auto-daily-newsletter' ); ?></p>
+								</td>
+							</tr>
+							<tr>
+								<th scope="row"><?php esc_html_e( 'Primary Inbox Delivery Tip', 'auto-daily-newsletter' ); ?></th>
+								<td>
+									<label>
+										<input type="checkbox" name="adnl_show_primary_tip" value="1" <?php checked( get_option( 'adnl_show_primary_tip', 1 ), 1 ); ?> />
+										<strong><?php esc_html_e( 'Show "Drag to Primary Tab" delivery tip in email footer', 'auto-daily-newsletter' ); ?></strong>
+									</label>
+									<p class="description"><?php esc_html_e( 'Helps readers move your newsletter to Gmail\'s Primary tab or whitelist your address, training inbox filters permanently.', 'auto-daily-newsletter' ); ?></p>
 								</td>
 							</tr>
 						</table>
@@ -738,6 +790,41 @@ $active_tab = isset( $_GET['tab'] ) ? sanitize_key( $_GET['tab'] ) : 'dashboard'
 						<h2><?php esc_html_e( 'Email Sender & SMTP Configuration', 'auto-daily-newsletter' ); ?></h2>
 					</div>
 					<div class="adnl-box-body">
+
+						<!-- Deliverability & Primary Inbox Diagnostic Guide -->
+						<div style="background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 18px 22px; margin-bottom: 20px;">
+							<div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
+								<h3 style="margin: 0; color: #166534; font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+									<span class="dashicons dashicons-shield" style="color: #16a34a; font-size: 20px;"></span>
+									<?php esc_html_e( 'How to Fix: Emails Going to Spam or Promotions Tab', 'auto-daily-newsletter' ); ?>
+								</h3>
+								<span style="font-size: 11px; background: #dcfce7; color: #15803d; padding: 3px 10px; border-radius: 9999px; font-weight: 700; border: 1px solid #bbf7d0;">
+									RFC 8058 & 5322 Compliant
+								</span>
+							</div>
+
+							<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; font-size: 13px; line-height: 1.5; color: #1e293b;">
+								<div style="background: #ffffff; padding: 14px; border-radius: 6px; border: 1px solid #bbf7d0;">
+									<strong style="color: #166534; display: block; margin-bottom: 6px; font-size: 13px;">📥 1. Landing in Gmail "Primary" Tab (vs Promotions):</strong>
+									<ul style="margin: 0; padding-left: 18px; color: #334155; font-size: 12px;">
+										<li style="margin-bottom: 5px;"><strong>Drag to Primary Once:</strong> Ask subscribers to drag your email from "Promotions" to the "Primary" tab once. When Gmail asks <em>"Do this for future messages?"</em>, click <strong>Yes</strong>.</li>
+										<li style="margin-bottom: 5px;"><strong>Add to Contacts:</strong> When readers add your sender address to their address book or Google Contacts, Gmail permanently delivers all issues to Primary.</li>
+										<li style="margin-bottom: 5px;"><strong>Primary Whitelist Tip:</strong> We automatically add a subtle "Drag to Primary" tip in your email footer (toggle under <em>Branding</em> tab).</li>
+										<li><strong>Clean Subjects:</strong> Avoid excessive capitalization (e.g. "HUGE SALE"), dollar signs, or brackets in subject lines.</li>
+									</ul>
+								</div>
+
+								<div style="background: #ffffff; padding: 14px; border-radius: 6px; border: 1px solid #bbf7d0;">
+									<strong style="color: #166534; display: block; margin-bottom: 6px; font-size: 13px;">🛡️ 2. Preventing Emails Landing in Spam (DNS Setup):</strong>
+									<ul style="margin: 0; padding-left: 18px; color: #334155; font-size: 12px;">
+										<li style="margin-bottom: 5px;"><strong>SPF Record (TXT):</strong> Add an SPF TXT record on your domain DNS: <code>v=spf1 include:_spf.google.com ~all</code> (for Gmail) or your hosting provider's SPF.</li>
+										<li style="margin-bottom: 5px;"><strong>DKIM Key:</strong> Enable DKIM in cPanel / Cloudflare / Hostinger to cryptographically sign outgoing messages.</li>
+										<li style="margin-bottom: 5px;"><strong>DMARC Record (TXT):</strong> Add TXT record for <code>_dmarc.yourdomain.com</code> with value <code>v=DMARC1; p=none;</code>.</li>
+										<li><strong>Domain Alignment:</strong> Ensure your "From Email" domain matches your SMTP provider domain to pass DMARC checks.</li>
+									</ul>
+								</div>
+							</div>
+						</div>
 
 						<!-- SMTP Helper Guide Banner -->
 						<div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 16px 20px; margin-bottom: 24px;">
